@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BNB Card — Load BNB. Tap to pay.</title>
+<meta name="theme-color" content="#0b0a0b">
+<style>
+  :root{
+    --bg:#050406;
+    --fg:#eef0f2;
+    --muted:#9fa2ad;
+    --accent:#f3b200; /* Binance yellow */
+    --panel:#0f0e11;
+    --glass: rgba(255,255,255,0.028);
+    --br:18px;
+    --shadow: 0 20px 70px rgba(0,0,0,0.55);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; color:var(--fg); background:var(--bg);
+    font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    overflow-x:hidden;
+  }
+
+  /* Ambient gradient orbs */
+  .orb{ position:fixed; width:800px; height:800px; border-radius:50%; filter:blur(100px);
+    background:
+      radial-gradient(closest-side, rgba(243,178,0,0.15), transparent 70%),
+      radial-gradient(closest-side, rgba(0,200,255,0.08), transparent 70%);
+    opacity:.35; z-index:0; pointer-events:none; mix-blend-mode:screen;
+    animation: float 18s ease-in-out infinite alternate;
+  }
+  .orb.b{ right:-260px; bottom:-260px; animation-delay: -9s; }
+  .orb.a{ left:-260px; top:-260px; }
+
+  @keyframes float {
+    0% { transform: translate3d(0,0,0) scale(1); }
+    100% { transform: translate3d(60px, -40px, 0) scale(1.06); }
+  }
+
+  /* Progress bar */
+  .progress{ position:fixed; top:0; left:0; height:3px; width:0; background:linear-gradient(90deg,#ffd86a,var(--accent)); z-index:60; box-shadow:0 0 10px rgba(243,178,0,0.7); }
+
+  /* Cursor */
+  body{ cursor:none; }
+  .cursor, .cursor-tail{
+    position:fixed; pointer-events:none; left:0; top:0; transform:translate(-50%,-50%); z-index:100;
+    border-radius:50%;
+  }
+  .cursor{ width:26px; height:26px; border:2px solid rgba(255,255,255,0.14);
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.06), transparent 60%);
+    transition: width .15s ease, height .15s ease, background .15s ease, transform .15s ease;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  }
+  .cursor.big{ width:70px; height:70px; background: radial-gradient(circle at 30% 30%, rgba(243,178,0,0.18), transparent 60%); border-color: rgba(243,178,0,0.2); }
+  .cursor-tail{ width:12px; height:12px; background:rgba(243,178,0,0.7); filter:blur(2px); opacity:.8; }
+
+  header{
+    position:fixed; inset:16px auto auto 50%; transform:translateX(-50%); width:92%; max-width:1200px;
+    display:flex; justify-content:space-between; align-items:center; z-index:50;
+    padding:10px 16px; border-radius:999px; backdrop-filter: blur(8px);
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.012));
+    border:1px solid rgba(255,255,255,0.04);
+  }
+  .brand{ display:flex; gap:12px; align-items:center;}
+  .logo{ width:46px; height:46px; border-radius:12px; background:linear-gradient(180deg,#ffd66a,#f3b200);
+    display:flex; align-items:center; justify-content:center; color:#0b0a0b; font-weight:900; box-shadow:0 8px 28px rgba(243,178,0,0.12);
+  }
+  nav{ display:flex; gap:8px; align-items:center; }
+  nav a{ color:var(--muted); text-decoration:none; font-weight:600; font-size:14px; padding:8px 10px; border-radius:10px; }
+  nav a:hover{ color:#fff; background:rgba(255,255,255,0.06); }
+  nav a.cta{ background:var(--accent); color:#0b0a0b; font-weight:900; box-shadow:0 12px 30px rgba(243,178,0,0.18); }
+  @media (max-width:920px){ nav a.hide{ display:none } }
+
+  main{ padding-top:120px; display:flex; flex-direction:column; gap:90px; align-items:center; padding-bottom:100px; position:relative; z-index:1; }
+  .container{ width:100%; max-width:1200px; padding:24px; }
+
+  /* Hero */
+  .hero{ display:grid; grid-template-columns: 1.1fr .9fr; gap:36px; align-items:center; border-radius:22px; padding:36px; background:linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.03); box-shadow:var(--shadow); overflow:hidden; }
+  .eyebrow{ color:var(--muted); font-weight:800; letter-spacing:.12em; font-size:12px; text-transform:uppercase; }
+  h1{ font-size:46px; line-height:1.02; margin:6px 0 10px 0; }
+  .lead{ color:var(--muted); max-width:52ch; }
+  .actions{ display:flex; gap:12px; margin-top:20px; align-items:center; flex-wrap:wrap; }
+  .btn{ padding:12px 16px; border-radius:12px; font-weight:800; letter-spacing:.01em; cursor:pointer; border:1px solid rgba(255,255,255,0.04); background:transparent; color:inherit; transition: transform .18s ease, background .18s ease; }
+  .btn:hover{ transform: translateY(-2px); }
+  .btn.primary{ background:linear-gradient(180deg,var(--accent), #e6a400); color:#0b0a0b; border:none; box-shadow:0 12px 36px rgba(243,178,0,0.2); }
+  .btn.ghost{ color:#fff; background:rgba(255,255,255,0.04); }
+  .badges{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+  .badge{ padding:8px 12px; border-radius:999px; background:rgba(255,255,255,0.02); color:var(--muted); font-weight:800; font-size:12.5px; border:1px solid rgba(255,255,255,0.02); }
+
+  /* Card lab */
+  .card-lab{ display:flex; flex-direction:column; gap:14px; }
+  .card-stage{ perspective:1100px; }
+  .card{
+    width:100%; height:240px; border-radius:16px; color:#fff; padding:18px; display:flex; flex-direction:column; justify-content:space-between;
+    transform-style: preserve-3d; transition: transform .18s ease, box-shadow .18s ease;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.55);
+    border:1px solid rgba(255,255,255,0.04);
+    position:relative; overflow:hidden;
+  }
+  .card::before{ /* animated shimmer */
+    content:""; position:absolute; inset:-40%; background: conic-gradient(from 0deg, rgba(255,255,255,0.04), transparent 30%, rgba(255,255,255,0.08) 40%, transparent 60%);
+    animation: spin 8s linear infinite; mix-blend-mode: overlay; pointer-events:none;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg)} }
+  .chip{ width:50px; height:36px; border-radius:8px; background:linear-gradient(180deg,#ffd66a,#d49a00); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2) }
+  .row{ display:flex; justify-content:space-between; align-items:center; }
+  .num{ font-weight:900; letter-spacing:2px; font-size:19px; }
+  .light{ background:linear-gradient(135deg,#18181b,#0b0a0b); }
+  .gold{ background:linear-gradient(135deg,#412700,#2b1a00); }
+  .neon{ background:linear-gradient(135deg,#02263a,#002133); }
+
+  .tabs{ display:flex; gap:8px; }
+  .tab{ padding:8px 12px; border-radius:10px; background:rgba(255,255,255,0.03); color:var(--muted); font-weight:800; cursor:pointer; border:1px solid rgba(255,255,255,0.02) }
+  .tab.active{ color:#fff; background:rgba(255,255,255,0.08) }
+
+  /* Sections */
+  .section{ background:linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.03); border-radius:18px; padding:24px; box-shadow:var(--shadow); }
+  .grid-3{ display:grid; grid-template-columns: repeat(3,1fr); gap:18px; }
+  .grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+  @media (max-width:980px){ .hero{ grid-template-columns:1fr } .grid-3, .grid-2{ grid-template-columns:1fr } nav a.hide{ display:none } }
+
+  /* Pricing / Fees / Limits */
+  .list{ color:var(--muted); padding-left:18px; }
+  .panel{ background:var(--panel); border:1px solid rgba(255,255,255,0.02); border-radius:14px; padding:16px; }
+  .rowv{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,0.06); }
+  .rowv:last-child{ border-bottom:none; }
+
+  /* Marquee */
+  .marquee{ overflow:hidden; position:relative; border-radius:12px; border:1px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.02); }
+  .marquee .line{ display:flex; gap:30px; padding:14px; white-space:nowrap; animation: scroll 22s linear infinite; }
+  @keyframes scroll{ from{ transform: translateX(0)} to{ transform: translateX(-50%) } }
+
+  footer{ color:var(--muted); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+
+  /* Reveal */
+  .reveal{ opacity:0; transform:translateY(18px); transition: all .8s cubic-bezier(.2,.9,.3,1); }
+  .reveal.visible{ opacity:1; transform: translateY(0); }
+
+  /* Magnetic buttons */
+  .mag{ position:relative; overflow:clip; }
+  .mag span{ position:relative; z-index:2 }
+  .mag .halo{ position:absolute; inset:-40px; background:radial-gradient(200px 200px at var(--x,50%) var(--y,50%), rgba(255,255,255,0.08), transparent 60%); transition:opacity .2s; opacity:0; z-index:1; }
+  .mag:hover .halo{ opacity:1; }
+
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="orb a"></div>
+<div class="orb b"></div>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-tail" id="cursorTail"></div>
+
+<header>
+  <div class="brand">
+    <div class="logo">BNB</div>
+    <div>
+      <div style="font-weight:900">BNB Card</div>
+      <div style="font-size:12px;color:var(--muted)">Load BNB. Tap to pay.</div>
+    </div>
+  </div>
+  <nav>
+    <a class="hide" href="#how">How</a>
+    <a class="hide" href="#pricing">Pricing</a>
+    <a class="hide" href="#fees">Fees</a>
+    <a class="hide" href="#support">Support</a>
+    <a class="cta" href="#wait">Join</a>
+  </nav>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="container hero reveal" id="top">
+    <div>
+      <div class="eyebrow">New • Limited access</div>
+      <h1>Spend BNB everywhere — instant activation.</h1>
+      <p class="lead">Top up with Binance Coin and start tapping to pay online or in‑store. Virtual and physical cards. Apple Pay & Google Pay compatible.</p>
+      <div class="actions">
+        <button class="btn primary mag" onclick="go('#wait')"><span>Join waitlist</span><i class="halo"></i></button>
+        <a class="btn ghost mag" href="#how"><span>See how it works</span><i class="halo"></i></a>
+        <a class="btn mag" href="mailto:support@bnbcard.app"><span>Contact</span><i class="halo"></i></a>
+      </div>
+      <div class="badges">
+        <div class="badge">Instant top‑ups</div>
+        <div class="badge">Tap to pay</div>
+        <div class="badge">Virtual & Physical</div>
+        <div class="badge">Worldwide merchants</div>
+      </div>
+    </div>
+
+    <div class="card-lab">
+      <div class="tabs">
+        <div class="tab active" data-style="light">Classic</div>
+        <div class="tab" data-style="gold">Gold</div>
+        <div class="tab" data-style="neon">Neon</div>
+      </div>
+      <div class="card-stage">
+        <div id="card" class="card light" aria-label="BNB Card">
+          <div class="row">
+            <div style="display:flex; gap:12px; align-items:center;"><div class="chip"></div><div style="font-weight:900">BNB Card</div></div>
+            <div style="font-weight:900">4.238 BNB</div>
+          </div>
+          <div class="num" id="cardNumber">•••• •••• •••• 1234</div>
+          <div class="row"><div style="color:var(--muted)">VALID • 12/30</div><div>BNB</div></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn mag" onclick="nudge('#card')"><span>Top up</span><i class="halo"></i></button>
+        <button class="btn primary mag" onclick="nudge('#card')"><span>Pay</span><i class="halo"></i></button>
+        <button class="btn mag" id="exportCard"><span>Export</span><i class="halo"></i></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section class="container section reveal" id="how">
+    <h2>How it works</h2>
+    <div class="grid-3" style="margin-top:10px">
+      <div class="panel"><strong>1 • Connect</strong><div class="list">Choose BNB and link your wallet. Your card is issued instantly.</div></div>
+      <div class="panel"><strong>2 • Load</strong><div class="list">Move BNB to your card balance with a single top‑up.</div></div>
+      <div class="panel"><strong>3 • Tap</strong><div class="list">Add to Apple Pay/Google Pay or swipe the physical card worldwide.</div></div>
+    </div>
+    <div class="marquee" style="margin-top:16px">
+      <div class="line">
+        <span>Apple Pay</span><span>Google Pay</span><span>Online Checkouts</span><span>Subscriptions</span><span>POS Terminals</span>
+        <span>Apple Pay</span><span>Google Pay</span><span>Online Checkouts</span><span>Subscriptions</span><span>POS Terminals</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING / LIMITS -->
+  <section class="container section reveal" id="pricing">
+    <h2>Pricing & Limits</h2>
+    <div class="grid-2" style="margin-top:10px">
+      <div class="panel">
+        <div class="rowv"><span>Virtual card</span><strong>Free</strong></div>
+        <div class="rowv"><span>Physical card</span><strong>$9.99</strong></div>
+        <div class="rowv"><span>Top‑up (instant)</span><strong>0.5%</strong></div>
+        <div class="rowv"><span>Foreign transaction</span><strong>0.75%</strong></div>
+        <div class="rowv"><span>ATM withdrawal</span><strong>1.5% + $2</strong></div>
+      </div>
+      <div class="panel">
+        <div class="rowv"><span>Single transaction</span><strong>$2,500</strong></div>
+        <div class="rowv"><span>Daily total</span><strong>$5,000</strong></div>
+        <div class="rowv"><span>Monthly total</span><strong>$25,000</strong></div>
+        <div class="rowv"><span>Apple/Google Pay</span><strong>Supported</strong></div>
+        <div class="rowv"><span>Regions</span><strong>Global*</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEES CALC -->
+  <section class="container section reveal" id="fees">
+    <h2>Fee calculator</h2>
+    <div class="grid-2" style="margin-top:10px">
+      <div class="panel">
+        <label>Amount (USD)</label>
+        <input id="amountUSD" type="number" value="100" min="0" style="width:100%; padding:12px; border-radius:10px; background:transparent; border:1px solid rgba(255,255,255,0.06); color:inherit; margin-top:6px">
+        <label style="display:block; margin-top:10px">Top‑up method</label>
+        <select id="method" style="width:100%; padding:12px; border-radius:10px; background:transparent; border:1px solid rgba(255,255,255,0.06); color:inherit;">
+          <option value="instant">Instant (0.5%)</option>
+          <option value="onchain">On‑chain (0.2%)</option>
+        </select>
+        <div class="rowv" style="margin-top:10px"><span>Estimated fee</span><strong id="feeTotal">$0.00</strong></div>
+        <div class="rowv"><span>BNB credited (est.)</span><strong id="bnbCredited">0.0000 BNB</strong></div>
+        <button class="btn primary mag" style="margin-top:10px" onclick="calcFee()"><span>Calculate</span><i class="halo"></i></button>
+      </div>
+      <div class="panel">
+        <strong>Details</strong>
+        <div class="list" id="feeBreakdown" style="margin-top:8px">Enter an amount and method to see the breakdown.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WAITLIST -->
+  <section class="container section reveal" id="wait">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:18px; flex-wrap:wrap;">
+      <div>
+        <h2>Join the waitlist</h2>
+        <div class="list">Be first to get your BNB Card. Beta opens in <span id="countdown">00:30:00</span>.</div>
+      </div>
+      <form id="waitForm" onsubmit="join(event)" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <input id="name" type="text" placeholder="Your name" required style="padding:12px; border-radius:10px; background:transparent; border:1px solid rgba(255,255,255,0.06); color:#fff; width:200px">
+        <input id="email" type="email" placeholder="you@example.com" required style="padding:12px; border-radius:10px; background:transparent; border:1px solid rgba(255,255,255,0.06); color:#fff; width:240px">
+        <button class="btn primary mag" type="submit"><span>Join</span><i class="halo"></i></button>
+        <button class="btn mag" type="button" onclick="exportCSV()"><span>Export</span><i class="halo"></i></button>
+      </form>
+    </div>
+    <div id="savedList" class="panel" style="margin-top:12px">No entries yet.</div>
+  </section>
+
+  <!-- SUPPORT -->
+  <section class="container section reveal" id="support">
+    <h2>Support</h2>
+    <div class="grid-3" style="margin-top:10px">
+      <a class="panel" href="mailto:support@bnbcard.app" style="text-decoration:none; color:inherit"><strong>Email</strong><div class="list">support@bnbcard.app</div></a>
+      <a class="panel" href="https://twitter.com" target="_blank" style="text-decoration:none; color:inherit"><strong>Twitter</strong><div class="list">@bnbcard</div></a>
+      <a class="panel" href="https://discord.com" target="_blank" style="text-decoration:none; color:inherit"><strong>Discord</strong><div class="list">Join the community</div></a>
+    </div>
+  </section>
+
+  <footer class="container">
+    <div>© BNB Card</div>
+    <div><a href="#top" class="btn ghost">Back to top</a></div>
+  </footer>
+</main>
+
+<script>
+  const $ = s => document.querySelector(s);
+
+  // Smooth anchor scroll
+  function go(id){ document.querySelector(id).scrollIntoView({behavior:'smooth', block:'start'}); }
+
+  // Scroll progress
+  const bar = $('#progress');
+  addEventListener('scroll', ()=>{
+    const docH = document.body.scrollHeight - innerHeight; const p = Math.max(0, Math.min(1, scrollY / docH));
+    bar.style.width = (p*100)+'%';
+  });
+
+  // Cursor
+  const cur = $('#cursor'), tail = $('#cursorTail');
+  addEventListener('mousemove', e=>{
+    cur.style.left = e.clientX+'px'; cur.style.top = e.clientY+'px';
+    tail.style.left = e.clientX+'px'; tail.style.top = e.clientY+'px';
+  });
+  ['a','button','input','select'].forEach(sel=>{
+    document.querySelectorAll(sel).forEach(el=>{
+      el.addEventListener('mouseenter', ()=> cur.classList.add('big'));
+      el.addEventListener('mouseleave', ()=> cur.classList.remove('big'));
+    });
+  });
+
+  // Reveal on scroll
+  const io = new IntersectionObserver(ents => ents.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); }), {threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=> io.observe(el));
+
+  // Magnetic buttons halo
+  document.querySelectorAll('.mag').forEach(b=>{
+    b.addEventListener('mousemove', e=>{
+      const r = b.getBoundingClientRect();
+      b.style.setProperty('--x', (e.clientX - r.left)+'px');
+      b.style.setProperty('--y', (e.clientY - r.top)+'px');
+    });
+  });
+
+  // Tabs + 3D tilt card
+  const card = $('#card');
+  function setStyle(style){
+    card.className = 'card ' + style;
+  }
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active'); setStyle(t.dataset.style);
+    });
+  });
+  const stage = document.querySelector('.card-stage');
+  stage.addEventListener('mousemove', e=>{
+    const r = stage.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - .5;
+    const y = (e.clientY - r.top) / r.height - .5;
+    card.style.transform = `rotateY(${x*12}deg) rotateX(${ -y*12 }deg) translateZ(0)`;
+  });
+  stage.addEventListener('mouseleave', ()=> card.style.transform = 'rotateY(0) rotateX(0)' );
+
+  function nudge(sel){
+    const el = document.querySelector(sel);
+    el.animate([{transform:el.style.transform+' translateY(0)'},{transform:el.style.transform+' translateY(-6px)'},{transform:el.style.transform+' translateY(0)'}], {duration:380, easing:'cubic-bezier(.2,.9,.3,1)'});
+  }
+
+  // Export card as SVG
+  $('#exportCard').addEventListener('click', ()=>{
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='900' height='500'><foreignObject width='100%' height='100%'>${new XMLSerializer().serializeToString(card)}</foreignObject></svg>`;
+    const blob = new Blob([svg], {type:'image/svg+xml'}); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'bnb-card.svg'; a.click(); setTimeout(()=> URL.revokeObjectURL(url), 1500);
+  });
+
+  // Fees calc
+  function calcFee(){
+    const usd = Number($('#amountUSD').value) || 0;
+    const method = $('#method').value;
+    const rate = method==='instant' ? 0.005 : 0.002;
+    const fee = usd * rate;
+    const credited = usd - fee;
+    const bnbRate = 280; // mock rate: $/BNB
+    const bnb = credited / bnbRate;
+    $('#feeTotal').innerText = '$' + fee.toFixed(2);
+    $('#bnbCredited').innerText = bnb.toFixed(4) + ' BNB';
+    $('#feeBreakdown').innerText = `${(rate*100).toFixed(2)}% ${method==='instant'?'instant':'on‑chain'} top‑up fee on $${usd.toFixed(2)} = $${fee.toFixed(2)}. Estimated credit $${credited.toFixed(2)} ≈ ${bnb.toFixed(4)} BNB @ $${bnbRate}/BNB.`;
+  }
+  calcFee();
+
+  // Countdown
+  const countdownEl = $('#countdown'); let target = Date.now() + 30*60*1000;
+  function tick(){
+    const d = Math.max(0, target - Date.now());
+    const mm = Math.floor(d/60000), ss = Math.floor((d%60000)/1000), hh = Math.floor(mm/60);
+    countdownEl.textContent = String(hh).padStart(2,'0')+':'+String(mm%60).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+    if(d>0) requestAnimationFrame(()=> setTimeout(tick, 250));
+  } tick();
+
+  // Waitlist (localStorage) + confetti
+  const KEY='bnb_waitlist_v3';
+  const listEl = $('#savedList');
+  function getList(){ return JSON.parse(localStorage.getItem(KEY)||'[]'); }
+  function setList(v){ localStorage.setItem(KEY, JSON.stringify(v)); renderList(); }
+  function renderList(){
+    const L = getList();
+    if(!L.length){ listEl.textContent = 'No entries yet.'; return; }
+    listEl.innerHTML = '<table style="width:100%; color:var(--muted)"><thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Email</th><th style="text-align:right">When</th></tr></thead><tbody>'+
+      L.map(r=>`<tr><td>${esc(r.name)}</td><td><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></td><td class="right" style="text-align:right">${new Date(r.ts).toLocaleString()}</td></tr>`).join('') + '</tbody></table>';
+  }
+  function esc(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function join(ev){
+    ev.preventDefault();
+    const name = $('#name').value.trim(), email = $('#email').value.trim();
+    if(!name || !email) return;
+    const L = getList(); L.push({name,email,ts:new Date().toISOString()}); setList(L);
+    $('#waitForm').reset(); confetti();
+  }
+  function exportCSV(){
+    const L = getList(); if(!L.length){ alert('No entries yet'); return; }
+    const csv = ['name,email,timestamp', ...L.map(r=>[r.name,r.email,r.ts].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='bnbcard-waitlist.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1200);
+  }
+  renderList();
+
+  // Simple confetti
+  function confetti(){
+    for(let i=0;i<60;i++){
+      const p=document.createElement('div');
+      p.style.position='fixed'; p.style.left=(Math.random()*100)+'%'; p.style.top='-10px';
+      p.style.width='6px'; p.style.height='10px'; p.style.background = i%3? 'rgba(243,178,0,.9)' : 'rgba(255,255,255,.9)';
+      p.style.transform=`rotate(${Math.random()*360}deg)`; p.style.zIndex=80; p.style.borderRadius='2px';
+      document.body.appendChild(p);
+      const dur = 1200 + Math.random()*1200;
+      p.animate([{transform:p.style.transform, top:'-10px', opacity:1},{top:'110%', opacity:.9}], {duration:dur, easing:'cubic-bezier(.2,.9,.3,1)'}).onfinish=()=>p.remove();
+    }
+  }
+</script>
+</body>
+</html>
